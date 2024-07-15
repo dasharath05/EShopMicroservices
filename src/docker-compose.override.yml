@@ -10,7 +10,7 @@ services:
             -   POSTGRESS_DB=CatalogDb
         restart: always
         ports:
-            -   "5432:5432"
+            -   "5435:5432"
         volumes:
             -   postgres_catalog:/var/lib/postgressql/data/ 
 
@@ -22,7 +22,7 @@ services:
             -   POSTGRESS_DB=BasketDb
         restart: always
         ports:
-            -   "5433:5432"
+            -   "5434:5432"
         volumes:
             -   postgres_basket:/var/lib/postgressql/data/
     
@@ -40,6 +40,18 @@ services:
         restart: always
         ports:
             -   "21433:1433"
+ 
+    messagebroker:
+        container_name: messagebroker
+        hostname: ecommerce-mq
+        environment:
+            -   RABBITMQ_DEFAULT_USER=guest
+            -   RABBITMQ_DEFAULT_PASS=guest
+        restart: always
+        ports:
+            -   "5672:5672"    
+            -   "15672:15672"
+            
     catalog.api:
         environment:
             - ASPNETCORE_ENVIRONMENT=Development
