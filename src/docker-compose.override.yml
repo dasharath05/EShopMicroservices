@@ -10,7 +10,7 @@ services:
             -   POSTGRESS_DB=CatalogDb
         restart: always
         ports:
-            -   "5435:5432"
+            -   "5432:5432"
         volumes:
             -   postgres_catalog:/var/lib/postgressql/data/ 
 
@@ -58,8 +58,6 @@ services:
             - ASPNETCORE_HTTP_PORTS=8080
             - ASPNETCORE_HTTPS_PORTS=8081
             - ConnectionStrings__Database=Server=catalogdb;Port=5432;Database=CatalogDb;User Id=postgres;Password=postgres; Include Error Details=true
-            - ASPNETCORE_Kestrel__Certificates__Default__Path=/root/.aspnet/https/aspnetapp.pfx
-            - ASPNETCORE_Kestrel__Certificates__Default__Password=dasharath
         depends_on:
             -   catalogdb
         ports:
@@ -67,8 +65,7 @@ services:
             - "6060:8081"
         volumes:
             - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
-            - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
-            - ${USERPROFILE}\.aspnet\https:/root/.aspnet/https
+            - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro 
 
     basket.api:
         environment:
@@ -78,8 +75,9 @@ services:
             - ConnectionStrings__Database=Server=basketdb;Port=5432;Database=BasketDb;User Id=postgres;Password=postgres; Include Error Details=true
             - ConnectionStrings__Redis=distributedcache:6379
             - GrpcSettings__DiscountUrl=https://discount.grpc:8081
-            - ASPNETCORE_Kestrel__Certificates__Default__Path=/root/.aspnet/https/aspnetapp.pfx
-            - ASPNETCORE_Kestrel__Certificates__Default__Password=dasharath
+            - MessageBroker__Host=amqp://ecommerce-mq:5672
+            - MessageBroker__UserName=guest
+            - MessageBroker__Password=guest
         depends_on:
             - basketdb
             - distributedcache
@@ -90,7 +88,6 @@ services:
         volumes:
             - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
             - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
-            - ${USERPROFILE}\.aspnet\https:/root/.aspnet/https
 
     discount.grpc:
         environment:
@@ -98,12 +95,46 @@ services:
             - ASPNETCORE_HTTP_PORTS=8080
             - ASPNETCORE_HTTPS_PORTS=8081
             - ConnectionStrings__Database=Data Source =discountdb
-            - ASPNETCORE_Kestrel__Certificates__Default__Path=/root/.aspnet/https/aspnetapp.pfx
-            - ASPNETCORE_Kestrel__Certificates__Default__Password=dasharath
         ports:
             - "6002:8080"
             - "6062:8081"
         volumes:
             - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
             - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
-            - ${USERPROFILE}\.aspnet\https:/root/.aspnet/https 
+
+    ordering.api:
+        environment:
+            - ASPNETCORE_ENVIRONMENT=Development
+            - ASPNETCORE_HTTP_PORTS=8080
+            - ASPNETCORE_HTTPS_PORTS=8081
+            - ConnectionStrings__Database=Server=orderdb;Database=OrderDb;User Id=sa;Password=SwN12345678;Encrypt=False;TrustServerCertificate=True
+            - MessageBroker__Host=amqp://ecommerce-mq:5672
+            - MessageBroker__UserName=guest
+            - MessageBroker__Password=guest
+            - FeatureManagement__OrderFullfilment=false
+        depends_on:
+            - orderdb
+            - messagebroker
+        ports:
+            - "6003:8080"
+            - "6063:8081"
+        volumes:
+            - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+            - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+ 
+    yarpapigateway:
+        environment:
+            - ASPNETCORE_ENVIRONMENT=Development
+            - ASPNETCORE_HTTP_PORTS=8080
+            - ASPNETCORE_HTTPS_PORTS=8081
+        depends_on:
+            - catalog.api
+            - basket.api
+            - ordering.api
+        ports:
+            - "6004:8080"
+            - "6064:8081"
+        volumes:
+            - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+            - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+
